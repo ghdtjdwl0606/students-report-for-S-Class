@@ -21,8 +21,8 @@ const COLOR_MAP = [
 ];
 
 const initialSections: SectionConfig[] = [
-  { id: 'sec-1', name: '영역 1', questionCount: 10, color: 'from-blue-500 to-indigo-600' },
-  { id: 'sec-2', name: '영역 2', questionCount: 10, color: 'from-emerald-500 to-teal-600' }
+  { id: 'sec-1', name: 'Reading', questionCount: 10, color: 'from-blue-500 to-indigo-600' },
+  { id: 'sec-2', name: 'Listening', questionCount: 10, color: 'from-emerald-500 to-teal-600' }
 ];
 
 const generateInitialQuestions = (secs: SectionConfig[]): Question[] => {
@@ -33,7 +33,7 @@ const generateInitialQuestions = (secs: SectionConfig[]): Question[] => {
         id: `${s.id}-${i}`,
         number: i,
         sectionId: s.id,
-        category: '일반',
+        category: 'Main Idea',
         correctAnswer: '',
         points: 1.0,
       });
@@ -46,7 +46,8 @@ const App: React.FC = () => {
   const [isSharedMode, setIsSharedMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
-      return hash.startsWith('#v4=') || hash.startsWith('#v5=');
+      // s= 는 V6 최적화 버전, v4/v5는 구버전 호환용
+      return hash.startsWith('#s=') || hash.startsWith('#v5=') || hash.startsWith('#v4=');
     }
     return false;
   });
@@ -64,73 +65,36 @@ const App: React.FC = () => {
       const hash = window.location.hash;
       if (!hash) return;
 
-      if (hash.startsWith('#v4=')) {
-        decodeV4(hash.replace('#v4=', ''));
+      if (hash.startsWith('#s=')) {
+        decodeV6(hash.replace('#s=', ''));
       } else if (hash.startsWith('#v5=')) {
         decodeV5(hash.replace('#v5=', ''));
+      } else if (hash.startsWith('#v4=')) {
+        decodeV4(hash.replace('#v4=', ''));
       }
     };
 
-    const decodeV4 = (compressed: string) => {
-      try {
-        const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
-        if (!decompressed) return;
-        const [name, sectionsStr, questionsStr, answersStr] = decompressed.split('|');
-        const restoredSections: SectionConfig[] = sectionsStr.split('^').map((s, i) => {
-          const [sName, sCount, sColor] = s.split('*');
-          return { id: `sec-shared-${i}`, name: sName, questionCount: Number(sCount), color: sColor };
-        });
-        const rawQData = questionsStr.split('^');
-        let qPointer = 0;
-        const finalQs: Question[] = [];
-        const finalAnswers: Record<string, string> = {};
-        const ansArray = answersStr.split('^');
-        restoredSections.forEach(rs => {
-           for(let k=1; k<=rs.questionCount; k++) {
-              if (rawQData[qPointer]) {
-                const [_, cat, correct, pts] = rawQData[qPointer].split('*');
-                const qId = `qs-${rs.id}-${k}`;
-                finalQs.push({
-                   id: qId,
-                   number: k,
-                   sectionId: rs.id,
-                   category: cat,
-                   correctAnswer: correct,
-                   points: Number(pts)
-                });
-                finalAnswers[qId] = ansArray[qPointer] || "";
-              }
-              qPointer++;
-           }
-        });
-        setSections(restoredSections);
-        setQuestions(finalQs);
-        setStudentInput({ name, answers: finalAnswers });
-        setIsSharedMode(true);
-        setCurrentStep(Step.REPORT);
-      } catch (e) { console.error("V4 Link Error", e); }
-    };
-
-    const decodeV5 = (compressed: string) => {
+    const decodeV6 = (compressed: string) => {
       try {
         const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
         if (!decompressed) return;
         
-        const [name, sectionsStr, catDictStr, questionsStr, answersStr] = decompressed.split('|');
-        const catDict = catDictStr.split('^');
+        // V6 포맷: name ~ sections ~ cats ~ qs ~ ans
+        const [name, sectionsStr, catDictStr, questionsStr, answersStr] = decompressed.split('~');
+        const catDict = catDictStr.split(',');
         
-        const restoredSections: SectionConfig[] = sectionsStr.split('^').map((s, i) => {
-          const [sName, sCount, colorIdx] = s.split('*');
+        const restoredSections: SectionConfig[] = sectionsStr.split(';').map((s, i) => {
+          const [sName, sCount, colorIdx] = s.split(',');
           return { 
-            id: `sec-shared-${i}`, 
+            id: `sec-v6-${i}`, 
             name: sName, 
             questionCount: Number(sCount), 
             color: COLOR_MAP[Number(colorIdx)] || COLOR_MAP[0] 
           };
         });
 
-        const rawQData = questionsStr.split('^');
-        const ansArray = answersStr.split('^');
+        const rawQData = questionsStr.split(';');
+        const ansArray = answersStr.split(';');
         let qPointer = 0;
         const finalQs: Question[] = [];
         const finalAnswers: Record<string, string> = {};
@@ -138,7 +102,7 @@ const App: React.FC = () => {
         restoredSections.forEach(rs => {
            for(let k=1; k<=rs.questionCount; k++) {
               if (rawQData[qPointer]) {
-                const [catIdx, correct, pts] = rawQData[qPointer].split('*');
+                const [catIdx, correct, pts] = rawQData[qPointer].split(',');
                 const qId = `qs-${rs.id}-${k}`;
                 finalQs.push({
                    id: qId,
@@ -159,7 +123,74 @@ const App: React.FC = () => {
         setStudentInput({ name, answers: finalAnswers });
         setIsSharedMode(true);
         setCurrentStep(Step.REPORT);
+      } catch (e) { console.error("V6 Link Error", e); }
+    };
+
+    const decodeV5 = (compressed: string) => {
+      try {
+        const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+        if (!decompressed) return;
+        const [name, sectionsStr, catDictStr, questionsStr, answersStr] = decompressed.split('|');
+        const catDict = catDictStr.split('^');
+        const restoredSections: SectionConfig[] = sectionsStr.split('^').map((s, i) => {
+          const [sName, sCount, colorIdx] = s.split('*');
+          return { id: `sec-v5-${i}`, name: sName, questionCount: Number(sCount), color: COLOR_MAP[Number(colorIdx)] || COLOR_MAP[0] };
+        });
+        const rawQData = questionsStr.split('^');
+        const ansArray = answersStr.split('^');
+        let qPointer = 0;
+        const finalQs: Question[] = [];
+        const finalAnswers: Record<string, string> = {};
+        restoredSections.forEach(rs => {
+           for(let k=1; k<=rs.questionCount; k++) {
+              if (rawQData[qPointer]) {
+                const [catIdx, correct, pts] = rawQData[qPointer].split('*');
+                const qId = `qs-${rs.id}-${k}`;
+                finalQs.push({ id: qId, number: k, sectionId: rs.id, category: catDict[Number(catIdx)] || '일반', correctAnswer: correct, points: pts === '' ? 1.0 : Number(pts) });
+                finalAnswers[qId] = ansArray[qPointer] || "";
+              }
+              qPointer++;
+           }
+        });
+        setSections(restoredSections);
+        setQuestions(finalQs);
+        setStudentInput({ name, answers: finalAnswers });
+        setIsSharedMode(true);
+        setCurrentStep(Step.REPORT);
       } catch (e) { console.error("V5 Link Error", e); }
+    };
+
+    const decodeV4 = (compressed: string) => {
+      try {
+        const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+        if (!decompressed) return;
+        const [name, sectionsStr, questionsStr, answersStr] = decompressed.split('|');
+        const restoredSections: SectionConfig[] = sectionsStr.split('^').map((s, i) => {
+          const [sName, sCount, sColor] = s.split('*');
+          return { id: `sec-v4-${i}`, name: sName, questionCount: Number(sCount), color: sColor };
+        });
+        const rawQData = questionsStr.split('^');
+        let qPointer = 0;
+        const finalQs: Question[] = [];
+        const finalAnswers: Record<string, string> = {};
+        const ansArray = answersStr.split('^');
+        restoredSections.forEach(rs => {
+           for(let k=1; k<=rs.questionCount; k++) {
+              if (rawQData[qPointer]) {
+                const [_, cat, correct, pts] = rawQData[qPointer].split('*');
+                const qId = `qs-${rs.id}-${k}`;
+                finalQs.push({ id: qId, number: k, sectionId: rs.id, category: cat, correctAnswer: correct, points: Number(pts) });
+                finalAnswers[qId] = ansArray[qPointer] || "";
+              }
+              qPointer++;
+           }
+        });
+        setSections(restoredSections);
+        setQuestions(finalQs);
+        setStudentInput({ name, answers: finalAnswers });
+        setIsSharedMode(true);
+        setCurrentStep(Step.REPORT);
+      } catch (e) { console.error("V4 Link Error", e); }
     };
 
     checkHash();

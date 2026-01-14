@@ -170,38 +170,40 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
 
   const copyShareLink = () => {
     try {
-      // V5 Compact Serialization
-      // 1. 카테고리 사전 구축
+      // V6 Ultra-Compact Serialization
+      // 1. 카테고리 사전 (중복 제거)
       const uniqueCats = Array.from(new Set(questions.map(q => q.category)));
-      const catDictStr = uniqueCats.join('^');
+      const catDictStr = uniqueCats.join(',');
 
-      // 2. 섹션 데이터 (색상은 인덱스로 변환)
+      // 2. 섹션 데이터 (이름, 문항수, 색상인덱스)
       const sectionsStr = sections.map(s => {
         const colorIdx = COLOR_MAP.indexOf(s.color);
-        return `${s.name}*${s.questionCount}*${colorIdx === -1 ? 0 : colorIdx}`;
-      }).join('^');
+        return `${s.name},${s.questionCount},${colorIdx === -1 ? 0 : colorIdx}`;
+      }).join(';');
 
-      // 3. 문항 데이터 (카테고리는 인덱스로 변환)
+      // 3. 문항 데이터 (카테고리인덱스, 정답, 배점)
       const questionsStr = questions.map(q => {
         const catIdx = uniqueCats.indexOf(q.category);
-        return `${catIdx}*${q.correctAnswer}*${q.points === 1 ? '' : q.points}`;
-      }).join('^');
+        const pts = q.points === 1 ? '' : q.points.toString();
+        return `${catIdx},${q.correctAnswer},${pts}`;
+      }).join(';');
 
       // 4. 학생 답안
-      const answersStr = questions.map(q => studentInput.answers[q.id] || "").join('^');
+      const answersStr = questions.map(q => studentInput.answers[q.id] || "").join(';');
 
+      // 최종 패키지 (~ 구분자 사용)
       const pack = [
         studentInput.name,
         sectionsStr,
         catDictStr,
         questionsStr,
         answersStr
-      ].join('|');
+      ].join('~');
 
       const compressed = LZString.compressToEncodedURIComponent(pack);
-      const url = `${window.location.origin}${window.location.pathname}#v5=${compressed}`;
+      const url = `${window.location.origin}${window.location.pathname}#s=${compressed}`;
       
-      navigator.clipboard.writeText(url).then(() => alert("성적표 공유 링크가 복사되었습니다. (V5 압축 적용)"));
+      navigator.clipboard.writeText(url).then(() => alert("성적표 공유 링크가 복사되었습니다. (V6 최적화 적용)"));
     } catch (err) {
       alert("링크 생성 실패");
     }
