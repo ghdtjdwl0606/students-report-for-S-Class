@@ -30,7 +30,7 @@ const GRAMMAR_DESCRIPTIONS: Record<string, string> = {
   "관계사": "선행사의 성격에 따라 알맞은 관계사를 선택하고, 복잡한 문장을 세련되게 결합하는 능력을 갖추었는지 확인합니다.",
   "분사/분사구문": "동사를 형용사처럼 활용하여 명사를 수식하는 현재분사와 과거분사의 의미 차이를 명확히 이해했는지 물어봅니다. 또한, 접속사가 포함된 긴 문장을 분사구문으로 축약하여 글의 효율성을 높이는 고급 문장 구성 원리를 이해를 확인합니다.",
   "가정법": "조건절, 가정법 과거, 가정법 과거완료의 차이를 명확히 구분하여 문장을 완성할 수 있는지 이해를 확인합니다. 또한 화자의 심리적 거리감을 표현하는 특수한 시제 규칙을 영작에 올바르게 적용하는지를 이해했는지 물어봅니다.",
-  "특수구문": "강조, 도치, 생략 등을 통해 문장의 특정 의미를 부각하는 기법을 이해했는지 물어봅니다."
+  "특수구문": "강조, 도치, 세밀한 의미를 부각하는 기법을 이해했는지 물어봅니다."
 };
 
 const READING_DESCRIPTIONS: Record<string, string> = {
@@ -195,31 +195,36 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
     if (!reportRef.current) return;
     setIsGeneratingPdf(true);
     
-    // PDF 최적화를 위한 가상 데스크톱 너비 설정
-    const originalWidth = reportRef.current.style.width;
-    const originalMaxWidth = reportRef.current.style.maxWidth;
+    const originalStyle = reportRef.current.getAttribute('style');
     
-    // 캡처 시 레이아웃을 PC 버전(1200px)으로 강제 고정
+    // PDF 최적화를 위해 레이아웃 고정
     reportRef.current.style.width = '1200px';
     reportRef.current.style.maxWidth = 'none';
+    reportRef.current.style.padding = '40px';
+    reportRef.current.style.backgroundColor = '#f8fafc';
 
     try {
-      // 렌더링 안정화를 위해 잠시 대기
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 렌더링 안정화 대기
+      await new Promise(resolve => setTimeout(resolve, 800));
 
       const canvas = await html2canvas(reportRef.current, { 
-        scale: 3, // 초고화질 캡처
+        scale: 2, 
         useCORS: true, 
         backgroundColor: '#f8fafc',
-        windowWidth: 1200, // 캡처 시 가상 윈도우 너비
+        windowWidth: 1200,
+        height: reportRef.current.scrollHeight, // 전체 높이 캡처 강제
+        scrollY: -window.scrollY,
         logging: false
       });
 
       // 레이아웃 원복
-      reportRef.current.style.width = originalWidth;
-      reportRef.current.style.maxWidth = originalMaxWidth;
+      if (originalStyle) {
+        reportRef.current.setAttribute('style', originalStyle);
+      } else {
+        reportRef.current.removeAttribute('style');
+      }
 
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -227,16 +232,23 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
       
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
 
-      // 만약 이미지 높이가 A4 한 페이지를 넘어가면 높이에 맞춰 PDF 생성
-      if (imgHeight > pdfHeight) {
-        const longPdf = new jsPDF('p', 'mm', [pdfWidth, imgHeight]);
-        longPdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight, undefined, 'FAST');
-        longPdf.save(`${studentInput.name}_성적표.pdf`);
-      } else {
-        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
-        pdf.save(`${studentInput.name}_성적표.pdf`);
+      // 첫 페이지 추가
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+      heightLeft -= pdfHeight;
+
+      // 남은 높이가 있으면 페이지 반복 추가 (Pagination)
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
+        heightLeft -= pdfHeight;
       }
+
+      pdf.save(`${studentInput.name}_성적표.pdf`);
     } catch (e) {
       console.error(e);
       alert("PDF 생성 중 오류가 발생했습니다.");
@@ -262,7 +274,8 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
         </button>
       </div>
 
-      <div ref={reportRef} className="space-y-6 p-4 md:p-0 transition-all duration-300 origin-top">
+      <div ref={reportRef} id="report-container" className="space-y-6 p-4 md:p-0 transition-all duration-300 origin-top">
+        {/* Header Section */}
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] p-8 md:p-10 text-white shadow-xl relative overflow-hidden border border-slate-700">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
@@ -299,21 +312,22 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
           </div>
         </div>
 
+        {/* Charts Section */}
         <div className="grid grid-cols-1 gap-8">
           {sections.map((section) => {
             const sectionData = result.categoryResults.filter(r => r.sectionName === section.name);
             return (
-              <div key={section.id} className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm">
+              <div key={section.id} className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm page-break-avoid">
                 <div className="flex justify-between items-start mb-8">
                   <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 uppercase tracking-tight">
                     <div className={`w-2 h-6 rounded-full bg-gradient-to-b ${section.color}`}></div>
-                    {section.name}
+                    {section.name} Analysis
                   </h3>
                   <div className="text-sm font-bold text-slate-400 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
                     {Math.round((result.scoreBySection[section.id] || 0) * 10) / 10} / {Math.round((result.maxScoreBySection[section.id] || 0) * 10) / 10}
                   </div>
                 </div>
-                <div className="h-[300px] w-full">
+                <div className="h-[320px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart 
                       data={sectionData} 
@@ -332,11 +346,11 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
                         dataKey={isMobile ? undefined : "category"} 
                         domain={isMobile ? [0, 100] : undefined} 
                         hide={isMobile} 
-                        width={100} 
-                        tick={{ fontSize: 12, fontWeight: 700, fill: '#64748b' }} 
+                        width={110} 
+                        tick={{ fontSize: 11, fontWeight: 700, fill: '#64748b' }} 
                       />
                       <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.4 }} />
-                      <Bar dataKey="percentage" radius={isMobile ? [6, 6, 0, 0] : [0, 6, 6, 0]} barSize={24}>
+                      <Bar dataKey="percentage" radius={isMobile ? [6, 6, 0, 0] : [0, 6, 6, 0]} barSize={28}>
                         {sectionData.map((entry: any, i: number) => (
                           <Cell key={`cell-${i}`} fill={entry.percentage >= 80 ? '#10b981' : entry.percentage >= 50 ? '#6366f1' : '#f43f5e'} />
                         ))}
@@ -344,7 +358,7 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
                           dataKey="percentage" 
                           position={isMobile ? "top" : "right"} 
                           formatter={(v: number) => `${Math.round(v)}%`} 
-                          style={{ fontSize: '12px', fontWeight: 'bold', fill: '#64748b' }} 
+                          style={{ fontSize: '11px', fontWeight: 'bold', fill: '#64748b' }} 
                         />
                       </Bar>
                     </BarChart>
