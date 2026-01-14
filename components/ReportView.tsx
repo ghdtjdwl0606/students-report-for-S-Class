@@ -170,40 +170,22 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
 
   const copyShareLink = () => {
     try {
-      // V6 Ultra-Compact Serialization
-      // 1. 카테고리 사전 (중복 제거)
       const uniqueCats = Array.from(new Set(questions.map(q => q.category)));
       const catDictStr = uniqueCats.join(',');
-
-      // 2. 섹션 데이터 (이름, 문항수, 색상인덱스)
       const sectionsStr = sections.map(s => {
         const colorIdx = COLOR_MAP.indexOf(s.color);
         return `${s.name},${s.questionCount},${colorIdx === -1 ? 0 : colorIdx}`;
       }).join(';');
-
-      // 3. 문항 데이터 (카테고리인덱스, 정답, 배점)
       const questionsStr = questions.map(q => {
         const catIdx = uniqueCats.indexOf(q.category);
         const pts = q.points === 1 ? '' : q.points.toString();
         return `${catIdx},${q.correctAnswer},${pts}`;
       }).join(';');
-
-      // 4. 학생 답안
       const answersStr = questions.map(q => studentInput.answers[q.id] || "").join(';');
-
-      // 최종 패키지 (~ 구분자 사용)
-      const pack = [
-        studentInput.name,
-        sectionsStr,
-        catDictStr,
-        questionsStr,
-        answersStr
-      ].join('~');
-
+      const pack = [studentInput.name, sectionsStr, catDictStr, questionsStr, answersStr].join('~');
       const compressed = LZString.compressToEncodedURIComponent(pack);
       const url = `${window.location.origin}${window.location.pathname}#s=${compressed}`;
-      
-      navigator.clipboard.writeText(url).then(() => alert("성적표 공유 링크가 복사되었습니다. (V6 최적화 적용)"));
+      navigator.clipboard.writeText(url).then(() => alert("성적표 공유 링크가 복사되었습니다."));
     } catch (err) {
       alert("링크 생성 실패");
     }
@@ -212,16 +194,52 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
   const downloadPdf = async () => {
     if (!reportRef.current) return;
     setIsGeneratingPdf(true);
+    
+    // PDF 최적화를 위한 가상 데스크톱 너비 설정
+    const originalWidth = reportRef.current.style.width;
+    const originalMaxWidth = reportRef.current.style.maxWidth;
+    
+    // 캡처 시 레이아웃을 PC 버전(1200px)으로 강제 고정
+    reportRef.current.style.width = '1200px';
+    reportRef.current.style.maxWidth = 'none';
+
     try {
-      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: '#f8fafc' });
+      // 렌더링 안정화를 위해 잠시 대기
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const canvas = await html2canvas(reportRef.current, { 
+        scale: 3, // 초고화질 캡처
+        useCORS: true, 
+        backgroundColor: '#f8fafc',
+        windowWidth: 1200, // 캡처 시 가상 윈도우 너비
+        logging: false
+      });
+
+      // 레이아웃 원복
+      reportRef.current.style.width = originalWidth;
+      reportRef.current.style.maxWidth = originalMaxWidth;
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgData = canvas.toDataURL('image/png');
+      
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${studentInput.name}_성적표.pdf`);
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      // 만약 이미지 높이가 A4 한 페이지를 넘어가면 높이에 맞춰 PDF 생성
+      if (imgHeight > pdfHeight) {
+        const longPdf = new jsPDF('p', 'mm', [pdfWidth, imgHeight]);
+        longPdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, imgHeight, undefined, 'FAST');
+        longPdf.save(`${studentInput.name}_성적표.pdf`);
+      } else {
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
+        pdf.save(`${studentInput.name}_성적표.pdf`);
+      }
     } catch (e) {
-      alert("PDF 생성 오류");
+      console.error(e);
+      alert("PDF 생성 중 오류가 발생했습니다.");
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -244,7 +262,7 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
         </button>
       </div>
 
-      <div ref={reportRef} className="space-y-6 p-4 md:p-0">
+      <div ref={reportRef} className="space-y-6 p-4 md:p-0 transition-all duration-300 origin-top">
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] p-8 md:p-10 text-white shadow-xl relative overflow-hidden border border-slate-700">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
