@@ -12,6 +12,14 @@ enum Step {
   REPORT
 }
 
+const COLOR_MAP = [
+  'from-blue-500 to-indigo-600',
+  'from-emerald-500 to-teal-600',
+  'from-rose-500 to-pink-600',
+  'from-amber-500 to-orange-600',
+  'from-violet-500 to-purple-600'
+];
+
 const initialSections: SectionConfig[] = [
   { id: 'sec-1', name: '영역 1', questionCount: 10, color: 'from-blue-500 to-indigo-600' },
   { id: 'sec-2', name: '영역 2', questionCount: 10, color: 'from-emerald-500 to-teal-600' }
@@ -37,7 +45,8 @@ const generateInitialQuestions = (secs: SectionConfig[]): Question[] => {
 const App: React.FC = () => {
   const [isSharedMode, setIsSharedMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      return window.location.hash.startsWith('#v4=');
+      const hash = window.location.hash;
+      return hash.startsWith('#v4=') || hash.startsWith('#v5=');
     }
     return false;
   });
@@ -53,26 +62,29 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkHash = () => {
       const hash = window.location.hash;
-      if (!hash || !hash.startsWith('#v4=')) return;
+      if (!hash) return;
 
+      if (hash.startsWith('#v4=')) {
+        decodeV4(hash.replace('#v4=', ''));
+      } else if (hash.startsWith('#v5=')) {
+        decodeV5(hash.replace('#v5=', ''));
+      }
+    };
+
+    const decodeV4 = (compressed: string) => {
       try {
-        const compressed = hash.replace('#v4=', '');
         const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
         if (!decompressed) return;
-
         const [name, sectionsStr, questionsStr, answersStr] = decompressed.split('|');
-        
         const restoredSections: SectionConfig[] = sectionsStr.split('^').map((s, i) => {
           const [sName, sCount, sColor] = s.split('*');
           return { id: `sec-shared-${i}`, name: sName, questionCount: Number(sCount), color: sColor };
         });
-
         const rawQData = questionsStr.split('^');
         let qPointer = 0;
         const finalQs: Question[] = [];
         const finalAnswers: Record<string, string> = {};
         const ansArray = answersStr.split('^');
-
         restoredSections.forEach(rs => {
            for(let k=1; k<=rs.questionCount; k++) {
               if (rawQData[qPointer]) {
@@ -91,15 +103,63 @@ const App: React.FC = () => {
               qPointer++;
            }
         });
+        setSections(restoredSections);
+        setQuestions(finalQs);
+        setStudentInput({ name, answers: finalAnswers });
+        setIsSharedMode(true);
+        setCurrentStep(Step.REPORT);
+      } catch (e) { console.error("V4 Link Error", e); }
+    };
+
+    const decodeV5 = (compressed: string) => {
+      try {
+        const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+        if (!decompressed) return;
+        
+        const [name, sectionsStr, catDictStr, questionsStr, answersStr] = decompressed.split('|');
+        const catDict = catDictStr.split('^');
+        
+        const restoredSections: SectionConfig[] = sectionsStr.split('^').map((s, i) => {
+          const [sName, sCount, colorIdx] = s.split('*');
+          return { 
+            id: `sec-shared-${i}`, 
+            name: sName, 
+            questionCount: Number(sCount), 
+            color: COLOR_MAP[Number(colorIdx)] || COLOR_MAP[0] 
+          };
+        });
+
+        const rawQData = questionsStr.split('^');
+        const ansArray = answersStr.split('^');
+        let qPointer = 0;
+        const finalQs: Question[] = [];
+        const finalAnswers: Record<string, string> = {};
+
+        restoredSections.forEach(rs => {
+           for(let k=1; k<=rs.questionCount; k++) {
+              if (rawQData[qPointer]) {
+                const [catIdx, correct, pts] = rawQData[qPointer].split('*');
+                const qId = `qs-${rs.id}-${k}`;
+                finalQs.push({
+                   id: qId,
+                   number: k,
+                   sectionId: rs.id,
+                   category: catDict[Number(catIdx)] || '일반',
+                   correctAnswer: correct,
+                   points: pts === '' ? 1.0 : Number(pts)
+                });
+                finalAnswers[qId] = ansArray[qPointer] || "";
+              }
+              qPointer++;
+           }
+        });
 
         setSections(restoredSections);
         setQuestions(finalQs);
         setStudentInput({ name, answers: finalAnswers });
         setIsSharedMode(true);
         setCurrentStep(Step.REPORT);
-      } catch (e) {
-        console.error("Link Error", e);
-      }
+      } catch (e) { console.error("V5 Link Error", e); }
     };
 
     checkHash();

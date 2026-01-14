@@ -6,6 +6,14 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import LZString from 'lz-string';
 
+const COLOR_MAP = [
+  'from-blue-500 to-indigo-600',
+  'from-emerald-500 to-teal-600',
+  'from-rose-500 to-pink-600',
+  'from-amber-500 to-orange-600',
+  'from-violet-500 to-purple-600'
+];
+
 const GRAMMAR_DESCRIPTIONS: Record<string, string> = {
   "명사/대명사": "문장의 주인이 되는 대상을 지칭하고 이를 대신하는 표현의 쓰임을 이해했는지 물어봅니다.",
   "동사": "주어의 동작이나 상태를 나타내어 문장을 완성하는 기본 원리를 이해를 확인합니다.",
@@ -162,21 +170,38 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
 
   const copyShareLink = () => {
     try {
-      const sectionsStr = sections.map(s => `${s.name}*${s.questionCount}*${s.color}`).join('^');
-      const questionsStr = questions.map(q => `${q.sectionId}*${q.category}*${q.correctAnswer}*${q.points}`).join('^');
+      // V5 Compact Serialization
+      // 1. 카테고리 사전 구축
+      const uniqueCats = Array.from(new Set(questions.map(q => q.category)));
+      const catDictStr = uniqueCats.join('^');
+
+      // 2. 섹션 데이터 (색상은 인덱스로 변환)
+      const sectionsStr = sections.map(s => {
+        const colorIdx = COLOR_MAP.indexOf(s.color);
+        return `${s.name}*${s.questionCount}*${colorIdx === -1 ? 0 : colorIdx}`;
+      }).join('^');
+
+      // 3. 문항 데이터 (카테고리는 인덱스로 변환)
+      const questionsStr = questions.map(q => {
+        const catIdx = uniqueCats.indexOf(q.category);
+        return `${catIdx}*${q.correctAnswer}*${q.points === 1 ? '' : q.points}`;
+      }).join('^');
+
+      // 4. 학생 답안
       const answersStr = questions.map(q => studentInput.answers[q.id] || "").join('^');
 
       const pack = [
         studentInput.name,
         sectionsStr,
+        catDictStr,
         questionsStr,
         answersStr
       ].join('|');
 
       const compressed = LZString.compressToEncodedURIComponent(pack);
-      const url = `${window.location.origin}${window.location.pathname}#v4=${compressed}`;
+      const url = `${window.location.origin}${window.location.pathname}#v5=${compressed}`;
       
-      navigator.clipboard.writeText(url).then(() => alert("성적표 공유 링크가 복사되었습니다."));
+      navigator.clipboard.writeText(url).then(() => alert("성적표 공유 링크가 복사되었습니다. (V5 압축 적용)"));
     } catch (err) {
       alert("링크 생성 실패");
     }
@@ -276,14 +301,12 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
                       margin={{ left: isMobile ? 0 : 40, right: 40, top: 20 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={!isMobile} vertical={isMobile} />
-                      {/* Fixed XAxis for Desktop (type number) / Category for Mobile */}
                       <XAxis 
                         type={isMobile ? "category" : "number"} 
                         dataKey={isMobile ? "category" : undefined} 
                         domain={isMobile ? undefined : [0, 100]} 
                         hide={!isMobile} 
                       />
-                      {/* Fixed YAxis for Mobile (type number) / Category for Desktop */}
                       <YAxis 
                         type={isMobile ? "number" : "category"} 
                         dataKey={isMobile ? undefined : "category"} 
