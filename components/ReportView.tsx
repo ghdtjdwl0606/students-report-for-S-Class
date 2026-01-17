@@ -41,7 +41,13 @@ const READING_DESCRIPTIONS: Record<string, string> = {
   "Vocabulary": "어휘 문제. 지문 속 어휘나 표현의 의미를 정확하게 파악할 수 있는지를 물어봅니다.",
   "Pronoun Referent": "지시어 문제. 지시어가 무엇을 의미하는지를 정확하게 파악할 수 있는지를 물어봅니다.",
   "Rhetorical Structure": "수사적 의도 문제. 특정 정보가 어떤 의도로 제시되었는지 파악할 수 있는지를 물어봅니다.",
-  "Sentence Insertion": "문장 삽입 문제. 글의 흐름을 잘 이해하고 있는지를 물어봅니다."
+  "Sentence Insertion": "문장 삽입 문제. 글의 흐름을 잘 이해하고 있는지를 물어봅니다.",
+  "Sentence Comprehension": "개별 문장의 문법적 구조와 의미를 정확히 파악하는 능력입니다. 주로 문맥에 맞는 올바른 단어나 어구를 채우는 형태로 출제됩니다.",
+  "Sentence Comprehension (문장 이해)": "개별 문장의 문법적 구조와 의미를 정확히 파악하는 능력입니다. 주로 문맥에 맞는 올바른 단어나 어구를 채우는 형태로 출제됩니다.",
+  "Picture-Based Inference": "제공된 이미지나 도표 속의 시각적 정보와 텍스트를 결합하여 논리적으로 결론을 도출하는 유형입니다.",
+  "Picture-Based Inference (그림 기반 추론)": "제공된 이미지나 도표 속의 시각적 정보와 텍스트를 결합하여 논리적으로 결론을 도출하는 유형입니다.",
+  "Logical Structure": "지문의 전개 방식(원인과 결과, 비교와 대조, 시간적 순서 등)을 이해하고 있는지 평가합니다.",
+  "Logical Structure (논리적 구조)": "지문의 전개 방식(원인과 결과, 비교와 대조, 시간적 순서 등)을 이해하고 있는지 평가합니다."
 };
 
 const LISTENING_DESCRIPTIONS: Record<string, string> = {
@@ -51,7 +57,11 @@ const LISTENING_DESCRIPTIONS: Record<string, string> = {
   "Prosody": "화자의 어조 문제. 화자가 특정 내용을 말할 때 태도에 따라 언급되지 않은 사항을 파악할 수 있는 능력을 물어봅니다.",
   "Prediction": "예측 문제. 언급된 정보를 근거로 화자가 앞으로 할 일을 예측할 수 있는지를 물어봅니다.",
   "Speaker's Purpose": "화자의 의도 문제. 화자가 어떤 목적을 달성하려 하는지 왜 해당 내용을 말하는지를 정확하게 파악할 수 있는지를 물어봅니다.",
-  "Rhetorical Device": "수사적 구조 문제. 화자가 특정 정보를 언급한 의도를 정확히 파악할 수 있는지를 물어봅니다."
+  "Rhetorical Device": "수사적 구조 문제. 화자가 특정 정보를 언급한 의도를 정확히 파악할 수 있는지를 물어봅니다.",
+  "Picture Description": "제공된 그림 상황을 가장 잘 설명하는 문장을 듣고 고르는 기초적인 유형입니다.",
+  "Picture Description (그림 묘사)": "제공된 그림 상황을 가장 잘 설명하는 문장을 듣고 고르는 기초적인 유형입니다.",
+  "Sentence Recognition": "화자가 말한 문장과 의미적으로 동일하거나 가장 유사한 정보를 담고 있는 선택지를 고르는 능력입니다.",
+  "Sentence Recognition (문장 인식)": "화자가 말한 문장과 의미적으로 동일하거나 가장 유사한 정보를 담고 있는 선택지를 고르는 능력입니다."
 };
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -62,15 +72,17 @@ const CustomTooltip = ({ active, payload }: any) => {
     
     let description = "";
     
+    // 섹션 이름에 따라 노출 조건 필터링
     if (sectionName.includes('reading')) {
       description = READING_DESCRIPTIONS[category];
     } else if (sectionName.includes('listening')) {
       description = LISTENING_DESCRIPTIONS[category];
-    }
-    
-    if (!description) {
+    } else {
+      // 일반 Grammar/영역 설명 (Reading/Listening이 아닌 섹션의 경우)
       description = GRAMMAR_DESCRIPTIONS[category];
     }
+    
+    if (!description) return null;
     
     return (
       <div className="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-white/10 max-w-[280px]">
@@ -78,13 +90,11 @@ const CustomTooltip = ({ active, payload }: any) => {
           <p className="font-bold text-indigo-300 text-sm">{data.category}</p>
           <p className="text-xs font-black bg-indigo-500 px-2 py-0.5 rounded-lg shrink-0">{Math.round(data.percentage)}%</p>
         </div>
-        {description && (
-          <div className="pt-2 border-t border-white/10">
-            <p className="text-[11px] leading-relaxed text-slate-300 font-medium">
-              {description}
-            </p>
-          </div>
-        )}
+        <div className="pt-2 border-t border-white/10">
+          <p className="text-[11px] leading-relaxed text-slate-300 font-medium">
+            {description}
+          </p>
+        </div>
       </div>
     );
   }
@@ -197,14 +207,12 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
     
     const originalStyle = reportRef.current.getAttribute('style');
     
-    // PDF 최적화를 위해 레이아웃 고정
     reportRef.current.style.width = '1200px';
     reportRef.current.style.maxWidth = 'none';
     reportRef.current.style.padding = '40px';
     reportRef.current.style.backgroundColor = '#f8fafc';
 
     try {
-      // 렌더링 안정화 대기
       await new Promise(resolve => setTimeout(resolve, 800));
 
       const canvas = await html2canvas(reportRef.current, { 
@@ -212,12 +220,11 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
         useCORS: true, 
         backgroundColor: '#f8fafc',
         windowWidth: 1200,
-        height: reportRef.current.scrollHeight, // 전체 높이 캡처 강제
+        height: reportRef.current.scrollHeight,
         scrollY: -window.scrollY,
         logging: false
       });
 
-      // 레이아웃 원복
       if (originalStyle) {
         reportRef.current.setAttribute('style', originalStyle);
       } else {
@@ -236,11 +243,9 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
       let heightLeft = imgHeight;
       let position = 0;
 
-      // 첫 페이지 추가
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight, undefined, 'FAST');
       heightLeft -= pdfHeight;
 
-      // 남은 높이가 있으면 페이지 반복 추가 (Pagination)
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
@@ -275,7 +280,6 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
       </div>
 
       <div ref={reportRef} id="report-container" className="space-y-6 p-4 md:p-0 transition-all duration-300 origin-top">
-        {/* Header Section */}
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] p-8 md:p-10 text-white shadow-xl relative overflow-hidden border border-slate-700">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl"></div>
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
@@ -312,7 +316,6 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
           </div>
         </div>
 
-        {/* Charts Section */}
         <div className="grid grid-cols-1 gap-8">
           {sections.map((section) => {
             const sectionData = result.categoryResults.filter(r => r.sectionName === section.name);
