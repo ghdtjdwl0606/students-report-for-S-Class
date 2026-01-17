@@ -26,11 +26,11 @@ const GRAMMAR_DESCRIPTIONS: Record<string, string> = {
   "문장 형태": "긍정, 부정, 의문 등 상황에 따라 문장의 형태를 바꾸는 법을 이해했는지 물어봅니다.",
   "접속사": "접속사를 활용해 원인, 양보, 조건을 표현하며 글의 전개 흐름을 매끄럽게 구성하는 능력을 이해했는지 물어봅니다.",
   "비교급": "대상 간의 정도 차이를 비교하거나 최상의 상태를 표현하는 방식을 이해했는지 물어봅니다.",
-  "동명사/to 부정사": "동명사와 to 부정사의 쓰임을 이해하고, 특정 동사에서 형태에 따라 의미가 달라지는 것을 파악하고 있는지 물어봅니다.",
+  "동명사/to 부정사": "동명사와 to 부정사의 쓰임을 이해하고 , 특정 동사에서 형태에 따라 의미가 달라지는 것을 파악하고 있는지 물어봅니다.",
   "관계사": "선행사의 성격에 따라 알맞은 관계사를 선택하고, 복잡한 문장을 세련되게 결합하는 능력을 갖추었는지 확인합니다.",
   "분사/분사구문": "동사를 형용사처럼 활용하여 명사를 수식하는 현재분사와 과거분사의 의미 차이를 명확히 이해했는지 물어봅니다. 또한, 접속사가 포함된 긴 문장을 분사구문으로 축약하여 글의 효율성을 높이는 고급 문장 구성 원리를 이해를 확인합니다.",
-  "가정법": "조건절, 가정법 과거, 가정법 과거완료의 차이를 명확히 구분하여 문장을 완성할 수 있는지 이해를 확인합니다. 또한 화자의 심리적 거리감을 표현하는 특수한 시제 규칙을 영작에 올바르게 적용하는지를 이해했는지 물어봅니다.",
-  "특수구문": "강조, 도치, 세밀한 의미를 부각하는 기법을 이해했는지 물어봅니다."
+  "가정법": "'조건절', '가정법 과거', '가정법 과거완료'의 차이를 명확히 구분하여 문장을 완성할 수 있는지 이해를 확인합니다. 또한 화자의 심리적 거리감을 표현하는 특수한 시제 규칙을 영작에 올바르게 적용하는지를 이해했는지 물어봅니다.",
+  "특수구문": "강조, 도치, 생략 등을 통해 문장의 특정 의미를 부각하는 기법을 이해했는지 물어봅니다."
 };
 
 const READING_DESCRIPTIONS: Record<string, string> = {
@@ -42,12 +42,12 @@ const READING_DESCRIPTIONS: Record<string, string> = {
   "Pronoun Referent": "지시어 문제. 지시어가 무엇을 의미하는지를 정확하게 파악할 수 있는지를 물어봅니다.",
   "Rhetorical Structure": "수사적 의도 문제. 특정 정보가 어떤 의도로 제시되었는지 파악할 수 있는지를 물어봅니다.",
   "Sentence Insertion": "문장 삽입 문제. 글의 흐름을 잘 이해하고 있는지를 물어봅니다.",
-  "Sentence Comprehension": "개별 문장의 문법적 구조와 의미를 정확히 파악하는 능력입니다. 주로 문맥에 맞는 올바른 단어나 어구를 채우는 형태로 출제됩니다.",
   "Sentence Comprehension (문장 이해)": "개별 문장의 문법적 구조와 의미를 정확히 파악하는 능력입니다. 주로 문맥에 맞는 올바른 단어나 어구를 채우는 형태로 출제됩니다.",
-  "Picture-Based Inference": "제공된 이미지나 도표 속의 시각적 정보와 텍스트를 결합하여 논리적으로 결론을 도출하는 유형입니다.",
+  "Sentence Comprehension": "개별 문장의 문법적 구조와 의미를 정확히 파악하는 능력입니다. 주로 문맥에 맞는 올바른 단어나 어구를 채우는 형태로 출제됩니다.",
   "Picture-Based Inference (그림 기반 추론)": "제공된 이미지나 도표 속의 시각적 정보와 텍스트를 결합하여 논리적으로 결론을 도출하는 유형입니다.",
-  "Logical Structure": "지문의 전개 방식(원인과 결과, 비교와 대조, 시간적 순서 등)을 이해하고 있는지 평가합니다.",
-  "Logical Structure (논리적 구조)": "지문의 전개 방식(원인과 결과, 비교와 대조, 시간적 순서 등)을 이해하고 있는지 평가합니다."
+  "Picture-Based Inference": "제공된 이미지나 도표 속의 시각적 정보와 텍스트를 결합하여 논리적으로 결론을 도출하는 유형입니다.",
+  "Logical Structure (논리적 구조)": "지문의 전개 방식(원인과 결과, 비교와 대조, 시간적 순서 등)을 이해하고 있는지 평가합니다.",
+  "Logical Structure": "지문의 전개 방식(원인과 결과, 비교와 대조, 시간적 순서 등)을 이해하고 있는지 평가합니다."
 };
 
 const LISTENING_DESCRIPTIONS: Record<string, string> = {
@@ -58,10 +58,10 @@ const LISTENING_DESCRIPTIONS: Record<string, string> = {
   "Prediction": "예측 문제. 언급된 정보를 근거로 화자가 앞으로 할 일을 예측할 수 있는지를 물어봅니다.",
   "Speaker's Purpose": "화자의 의도 문제. 화자가 어떤 목적을 달성하려 하는지 왜 해당 내용을 말하는지를 정확하게 파악할 수 있는지를 물어봅니다.",
   "Rhetorical Device": "수사적 구조 문제. 화자가 특정 정보를 언급한 의도를 정확히 파악할 수 있는지를 물어봅니다.",
-  "Picture Description": "제공된 그림 상황을 가장 잘 설명하는 문장을 듣고 고르는 기초적인 유형입니다.",
   "Picture Description (그림 묘사)": "제공된 그림 상황을 가장 잘 설명하는 문장을 듣고 고르는 기초적인 유형입니다.",
-  "Sentence Recognition": "화자가 말한 문장과 의미적으로 동일하거나 가장 유사한 정보를 담고 있는 선택지를 고르는 능력입니다.",
-  "Sentence Recognition (문장 인식)": "화자가 말한 문장과 의미적으로 동일하거나 가장 유사한 정보를 담고 있는 선택지를 고르는 능력입니다."
+  "Picture Description": "제공된 그림 상황을 가장 잘 설명하는 문장을 듣고 고르는 기초적인 유형입니다.",
+  "Sentence Recognition (문장 인식)": "화자가 말한 문장과 의미적으로 동일하거나 가장 유사한 정보를 담고 있는 선택지를 고르는 능력입니다.",
+  "Sentence Recognition": "화자가 말한 문장과 의미적으로 동일하거나 가장 유사한 정보를 담고 있는 선택지를 고르는 능력입니다."
 };
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -72,13 +72,11 @@ const CustomTooltip = ({ active, payload }: any) => {
     
     let description = "";
     
-    // 섹션 이름에 따라 노출 조건 필터링
     if (sectionName.includes('reading')) {
       description = READING_DESCRIPTIONS[category];
     } else if (sectionName.includes('listening')) {
       description = LISTENING_DESCRIPTIONS[category];
     } else {
-      // 일반 Grammar/영역 설명 (Reading/Listening이 아닌 섹션의 경우)
       description = GRAMMAR_DESCRIPTIONS[category];
     }
     
@@ -206,7 +204,6 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
     setIsGeneratingPdf(true);
     
     const originalStyle = reportRef.current.getAttribute('style');
-    
     reportRef.current.style.width = '1200px';
     reportRef.current.style.maxWidth = 'none';
     reportRef.current.style.padding = '40px';
@@ -214,7 +211,6 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
 
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
-
       const canvas = await html2canvas(reportRef.current, { 
         scale: 2, 
         useCORS: true, 
@@ -233,10 +229,8 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * pdfWidth) / canvas.width;
       
