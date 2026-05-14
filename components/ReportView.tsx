@@ -259,8 +259,6 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
 
   if (!result) return <div className="p-20 text-center font-bold text-slate-400">데이터를 불러오는 중입니다...</div>;
 
-  const grandMaxScore = Object.values(result.maxScoreBySection).reduce((a: number, b: number) => a + b, 0) as number;
-
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20">
       <div className="flex flex-wrap justify-end gap-3 no-print px-4 md:px-0">
@@ -282,30 +280,21 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
               <span className="inline-block bg-indigo-500/20 backdrop-blur-md px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-4 border border-indigo-500/30">Official Student Report</span>
               <h2 className="text-4xl font-black">{result.studentName} 학생</h2>
               <div className="mt-6 flex flex-wrap gap-4 justify-center md:justify-start">
-                {sections.map(s => (
-                  <div key={s.id} className="bg-white/5 px-4 py-3 rounded-2xl border border-white/10 min-w-[120px] backdrop-blur-sm transition-all hover:bg-white/10">
-                    <span className="text-[10px] uppercase font-bold text-indigo-300 block mb-1">{s.name}</span>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-black">{Math.round((result.scoreBySection[s.id] || 0) * 10) / 10}</span>
-                      <span className="text-xs font-bold opacity-40">/ {Math.round((result.maxScoreBySection[s.id] || 0) * 10) / 10}</span>
+                {sections.map(s => {
+                  const maxScore = result.maxScoreBySection[s.id] || 0;
+                  const rawScore = result.scoreBySection[s.id] || 0;
+                  const normalizedScore = maxScore > 0 ? Math.round((rawScore / maxScore) * 1000) / 10 : 0;
+                  
+                  return (
+                    <div key={s.id} className="bg-white/5 px-4 py-3 rounded-2xl border border-white/10 min-w-[120px] backdrop-blur-sm transition-all hover:bg-white/10">
+                      <span className="text-[10px] uppercase font-bold text-indigo-300 block mb-1">{s.name}</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-black">{normalizedScore}</span>
+                        <span className="text-xs font-bold opacity-40">/ 100</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="bg-white text-slate-900 rounded-[2.5rem] p-8 text-center shadow-2xl min-w-[240px] border border-white/20">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Grand Total Score</span>
-              <div className="text-6xl font-black text-indigo-600 mt-2 tracking-tighter">
-                {result.totalScore}
-              </div>
-              <div className="mt-2 text-slate-400 font-bold text-sm">
-                out of {grandMaxScore} points
-              </div>
-              <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-indigo-500 rounded-full transition-all duration-1000 ease-out" 
-                  style={{ width: `${grandMaxScore > 0 ? (result.totalScore / grandMaxScore) * 100 : 0}%` }}
-                ></div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -322,7 +311,9 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
                     {section.name} Analysis
                   </h3>
                   <div className="text-sm font-bold text-slate-400 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
-                    {Math.round((result.scoreBySection[section.id] || 0) * 10) / 10} / {Math.round((result.maxScoreBySection[section.id] || 0) * 10) / 10}
+                    {result.maxScoreBySection[section.id] > 0 
+                      ? Math.round(((result.scoreBySection[section.id] || 0) / result.maxScoreBySection[section.id]) * 1000) / 10 
+                      : 0} / 100
                   </div>
                 </div>
                 <div className="h-[320px] w-full">
