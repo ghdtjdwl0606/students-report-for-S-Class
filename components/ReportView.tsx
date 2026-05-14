@@ -283,7 +283,7 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
                 {sections.map(s => {
                   const maxScore = result.maxScoreBySection[s.id] || 0;
                   const rawScore = result.scoreBySection[s.id] || 0;
-                  const normalizedScore = maxScore > 0 ? Math.round((rawScore / maxScore) * 1000) / 10 : 0;
+                  const normalizedScore = maxScore > 0 ? Math.round((30 + (rawScore / maxScore) * 70) * 10) / 10 : 30;
                   
                   return (
                     <div key={s.id} className="bg-white/5 px-4 py-3 rounded-2xl border border-white/10 min-w-[120px] backdrop-blur-sm transition-all hover:bg-white/10">
@@ -312,8 +312,8 @@ const ReportView: React.FC<Props> = ({ sections, questions, studentInput, onRese
                   </h3>
                   <div className="text-sm font-bold text-slate-400 bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
                     {result.maxScoreBySection[section.id] > 0 
-                      ? Math.round(((result.scoreBySection[section.id] || 0) / result.maxScoreBySection[section.id]) * 1000) / 10 
-                      : 0} / 100
+                      ? Math.round((30 + ((result.scoreBySection[section.id] || 0) / result.maxScoreBySection[section.id]) * 70) * 10) / 10 
+                      : 30} / 100
                   </div>
                 </div>
                 <div className="h-[320px] w-full">
